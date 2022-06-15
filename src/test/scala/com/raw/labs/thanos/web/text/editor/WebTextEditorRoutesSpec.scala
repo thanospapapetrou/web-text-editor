@@ -25,8 +25,8 @@ class WebTextEditorRoutesSpec extends AnyWordSpec with Matchers with ScalaFuture
   // We use the real UserRegistryActor to test it while we hit the Routes,
   // but we could "mock" it by implementing it in-place or by using a TestProbe
   // created with testKit.createTestProbe()
-  val userRegistry = testKit.spawn(UserRegistry())
-  lazy val routes = new WebTextEditorRoutes(userRegistry).userRoutes
+  val userRegistry = testKit.spawn(FileRegistry())
+  lazy val routes = new WebTextEditorRoutes(userRegistry).fileRoutes
 
   // use the json formats to marshal and unmarshall objects in the test
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -53,7 +53,7 @@ class WebTextEditorRoutesSpec extends AnyWordSpec with Matchers with ScalaFuture
 
     //#testing-post
     "be able to add users (POST /users)" in {
-      val user = User("Kapi", 42, "jp")
+      val user = File("Kapi", 42, "jp")
       val userEntity = Marshal(user).to[MessageEntity].futureValue // futureValue is from ScalaFutures
 
       // using the RequestBuilding DSL:

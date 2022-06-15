@@ -6,44 +6,45 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
-import com.raw.labs.thanos.web.text.editor.UserRegistry._
+import com.raw.labs.thanos.web.text.editor.FileRegistry._
 
 import scala.concurrent.Future
 
 object WebTextEditorRoutes {
+  private val FILES: String = "files"
   private val TIMEOUT: String = "web-text-editor.routes.ask-timeout"
 }
 
-class WebTextEditorRoutes(userRegistry: ActorRef[UserRegistry.Command])(implicit val system: ActorSystem[_]) {
+class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit val system: ActorSystem[_]) {
 
   import JsonFormats._
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
   private implicit val timeout: Timeout = Timeout.create(system.settings.config.getDuration(WebTextEditorRoutes.TIMEOUT))
 
-  def getUsers(): Future[Users] =
-    userRegistry.ask(GetUsers)
+  def getFiles(): Future[Files] =
+    fileRegistry.ask(GetFiles)
 
-  def getUser(name: String): Future[GetUserResponse] =
-    userRegistry.ask(GetUser(name, _))
+  def getFile(name: String): Future[GetFileResponse] =
+    fileRegistry.ask(GetFile(name, _))
 
-  def createUser(user: User): Future[ActionPerformed] =
-    userRegistry.ask(CreateUser(user, _))
+  def createFile(file: File): Future[ActionPerformed] =
+    fileRegistry.ask(NewFile(file, _))
 
-  def deleteUser(name: String): Future[ActionPerformed] =
-    userRegistry.ask(DeleteUser(name, _))
+  def deleteFile(name: String): Future[ActionPerformed] =
+    fileRegistry.ask(DeleteFile(name, _))
 
-  val userRoutes: Route =
-    pathPrefix("users") {
+  val fileRoutes: Route =
+    pathPrefix(WebTextEditorRoutes.FILES) {
       concat(
         pathEnd {
           concat(
             get {
-              complete(getUsers())
+              complete(getFiles())
             },
             post {
-              entity(as[User]) { user =>
-                onSuccess(createUser(user)) { performed =>
+              entity(as[File]) { file =>
+                onSuccess(createFile(file)) { performed =>
                   complete((StatusCodes.Created, performed))
                 }
               }
@@ -53,13 +54,13 @@ class WebTextEditorRoutes(userRegistry: ActorRef[UserRegistry.Command])(implicit
           concat(
             get {
               rejectEmptyResponse {
-                onSuccess(getUser(name)) { response =>
-                  complete(response.maybeUser)
+                onSuccess(getFile(name)) { response =>
+                  complete(response.maybeFile)
                 }
               }
             },
             delete {
-              onSuccess(deleteUser(name)) { performed =>
+              onSuccess(deleteFile(name)) { performed =>
                 complete((StatusCodes.OK, performed))
               }
             })

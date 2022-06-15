@@ -9,6 +9,7 @@ import scala.util.{Failure, Success}
 
 object WebTextEditor {
   private val BINDING_FAILURE: String = "Failed to bind HTTP endpoint, terminating system"
+  private val FILE_REGISTRY_ACTOR: String = "FileRegistryActor"
   private val HOST: String = "localhost"
   private val PORT: Int = 8080
   private val SERVER_ONLINE: String = "Server online at http://{}:{}/"
@@ -27,9 +28,9 @@ object WebTextEditor {
 
   def main(args: Array[String]): Unit = {
     ActorSystem[Nothing](Behaviors.setup[Nothing] { context =>
-      val userRegistryActor = context.spawn(UserRegistry(), "UserRegistryActor")
-      context.watch(userRegistryActor)
-      startHttpServer(new WebTextEditorRoutes(userRegistryActor)(context.system).userRoutes)(context.system)
+      val actor = context.spawn(FileRegistry(), FILE_REGISTRY_ACTOR)
+      context.watch(actor)
+      startHttpServer(new WebTextEditorRoutes(actor)(context.system).fileRoutes)(context.system)
       Behaviors.empty
     }, WEB_TEXT_EDITOR)
   }
