@@ -30,7 +30,7 @@ object WebTextEditor {
     ActorSystem[Nothing](Behaviors.setup[Nothing] { context =>
       val actor = context.spawn(FileRegistry(), FILE_REGISTRY_ACTOR)
       context.watch(actor)
-      startHttpServer(new WebTextEditorRoutes(actor)(context.system).fileRoutes)(context.system)
+      startHttpServer(new WebTextEditorRoutes(actor)(context.system).routes)(context.system)
       Behaviors.empty
     }, WEB_TEXT_EDITOR)
   }

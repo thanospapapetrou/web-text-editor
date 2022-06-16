@@ -1,15 +1,26 @@
-function edit() {
-    const name = parseQueryParameters().get("file");
+function load() {
+    const name = parseQueryParameters().get('file');
     const request = new XMLHttpRequest();
-    request.onload = () => {
+    request.onload = function () {
         const file = JSON.parse(this.response);
         document.getElementById('name').textContent = file.name;
-        document.getElementById('content').textContent = file.content;
+        document.getElementById('content').value = file.content;
         document.getElementById('lastUpdated').value = file.lastUpdated;
         document.getElementById('lastUpdatedString').textContent = new Date(file.lastUpdated);
     }
-    request.open("GET", "/files/" + name, true);
+    request.open('GET', '/files/' + name, true);
     request.send();
+}
+
+function save() {
+    const name = parseQueryParameters().get('file');
+    const request = new XMLHttpRequest();
+    request.onload = function () {
+        // TODO user may have typed more text before loading, we should only get timestamp back
+        load();
+    }
+    request.open('PUT', '/files/' + name, true);
+    request.send(document.getElementById('content').value);
 }
 
 function parseQueryParameters() {

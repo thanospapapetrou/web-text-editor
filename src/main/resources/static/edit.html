@@ -5,10 +5,10 @@
     <script src="/js/edit.js" type="text/javascript" async="async" defer="defer"></script>
     <title>Web Text Editor</title>
 </head>
-<body onload="edit();">
+<body onload="load();">
 <h1>Edit <span id="name"></span></h1>
 <input type="hidden" id="lastUpdated" />
 <p>Last Updated: <span id="lastUpdatedString"></span></p>
-<textarea id="content"></textarea>
+<textarea id="content" onkeyup="save();"></textarea>
 </body>
 </html>

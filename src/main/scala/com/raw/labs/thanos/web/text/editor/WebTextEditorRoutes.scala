@@ -39,7 +39,7 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
   def deleteFile(name: String): Future[ActionPerformed] =
     fileRegistry.ask(DeleteFile(name, _))
 
-  val fileRoutes: Route =
+  val routes: Route =
     concat(
       pathPrefix("") {
         pathEndOrSingleSlash {

@@ -26,7 +26,7 @@ class WebTextEditorRoutesSpec extends AnyWordSpec with Matchers with ScalaFuture
   // but we could "mock" it by implementing it in-place or by using a TestProbe
   // created with testKit.createTestProbe()
   val userRegistry = testKit.spawn(FileRegistry())
-  lazy val routes = new WebTextEditorRoutes(userRegistry).fileRoutes
+  lazy val routes = new WebTextEditorRoutes(userRegistry).routes
 
   // use the json formats to marshal and unmarshall objects in the test
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._

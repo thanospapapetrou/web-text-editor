@@ -44,6 +44,7 @@ object FileRegistry {
         replyTo ! GetFileResponse(files.find(_.name == name))
         Behaviors.same
       case UpdateFile(name, content, replyTo) =>
+        println(s"Updating file $name with content $content")
         replyTo ! ActionPerformed(s"File $name updated.")
         // TODO use clock
         registry(files.filterNot(_.name == name) + File(name, Instant.now().toEpochMilli, content))
