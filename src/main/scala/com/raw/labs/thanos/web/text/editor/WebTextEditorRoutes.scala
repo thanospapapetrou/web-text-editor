@@ -28,8 +28,11 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
   def getFile(name: String): Future[GetFileResponse] =
     fileRegistry.ask(GetFile(name, _))
 
-  def createFile(file: File): Future[ActionPerformed] =
-    fileRegistry.ask(NewFile(file, _))
+  def createFile(name: String): Future[ActionPerformed] =
+    fileRegistry.ask(CreateFile(name, _))
+
+  def updateFile(name: String, content: String): Future[ActionPerformed] =
+    fileRegistry.ask(UpdateFile(name, content, _))
 
   def deleteFile(name: String): Future[ActionPerformed] =
     fileRegistry.ask(DeleteFile(name, _))
@@ -41,21 +44,26 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
           concat(
             get {
               complete(getFiles())
-            },
-            post {
-              entity(as[File]) { file =>
-                onSuccess(createFile(file)) { performed =>
-                  complete((StatusCodes.Created, performed))
-                }
-              }
             })
         },
         path(Segment) { name =>
           concat(
+            post {
+              onSuccess(createFile(name)) { performed =>
+                complete((StatusCodes.Created, performed))
+              }
+            },
             get {
               rejectEmptyResponse {
                 onSuccess(getFile(name)) { response =>
                   complete(response.maybeFile)
+                }
+              }
+            },
+            put {
+              entity(as[String]) { content =>
+                onSuccess(updateFile(name, content)) { response =>
+                  complete(response)
                 }
               }
             },
