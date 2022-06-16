@@ -1,10 +1,10 @@
 function browse() {
     const request = new XMLHttpRequest();
-    request.onload = function() {
+    request.onload = () => {
         const files = JSON.parse(this.response).files;
         if (files.length) {
             const list = document.createElement('ul');
-            files.forEach(function (file) {
+            files.forEach(file => {
                 const element = document.createElement('li');
                 const link = document.createElement('a');
                 link.href = '/edit.html?file=' + file;
