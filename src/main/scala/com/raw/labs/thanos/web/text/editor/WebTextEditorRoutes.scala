@@ -12,6 +12,8 @@ import scala.concurrent.Future
 
 object WebTextEditorRoutes {
   private val FILES: String = "files"
+  private val INDEX: String = "static/index.html"
+  private val STATIC: String = "static"
   private val TIMEOUT: String = "web-text-editor.routes.ask-timeout"
 }
 
@@ -38,40 +40,51 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
     fileRegistry.ask(DeleteFile(name, _))
 
   val fileRoutes: Route =
-    pathPrefix(WebTextEditorRoutes.FILES) {
-      concat(
-        pathEnd {
-          concat(
-            get {
-              complete(getFiles())
-            })
-        },
-        path(Segment) { name =>
-          concat(
-            post {
-              onSuccess(createFile(name)) { performed =>
-                complete((StatusCodes.Created, performed))
+    concat(
+      pathPrefix("") {
+        pathEndOrSingleSlash {
+          getFromResource(WebTextEditorRoutes.INDEX)
+        } ~
+          getFromResourceDirectory(WebTextEditorRoutes.STATIC)
+      },
+      pathPrefix(WebTextEditorRoutes.FILES) {
+        concat(
+          pathEnd {
+            concat(
+              get {
+                complete(getFiles())
               }
-            },
-            get {
-              rejectEmptyResponse {
-                onSuccess(getFile(name)) { response =>
-                  complete(response.maybeFile)
+            )
+          },
+          path(Segment) { name =>
+            concat(
+              post {
+                onSuccess(createFile(name)) { performed =>
+                  complete((StatusCodes.Created, performed))
+                }
+              },
+              get {
+                rejectEmptyResponse {
+                  onSuccess(getFile(name)) { response =>
+                    complete(response.maybeFile)
+                  }
+                }
+              },
+              put {
+                entity(as[String]) { content =>
+                  onSuccess(updateFile(name, content)) { response =>
+                    complete(response)
+                  }
+                }
+              },
+              delete {
+                onSuccess(deleteFile(name)) { performed =>
+                  complete((StatusCodes.OK, performed))
                 }
               }
-            },
-            put {
-              entity(as[String]) { content =>
-                onSuccess(updateFile(name, content)) { response =>
-                  complete(response)
-                }
-              }
-            },
-            delete {
-              onSuccess(deleteFile(name)) { performed =>
-                complete((StatusCodes.OK, performed))
-              }
-            })
-        })
-    }
+            )
+          }
+        )
+      }
+    )
 }
