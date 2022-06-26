@@ -19,9 +19,6 @@ class WebTextEditorRoutesSpec extends AnyWordSpec with Matchers with ScalaFuture
   val userRegistry = testKit.spawn(FileRegistry())
   lazy val routes = new WebTextEditorRoutes(userRegistry).routes
 
-  import JsonFormats._
-  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-
   "WebTextEditorRoutes" should {
     "return no files if no present (GET /files)" in {
       val request = HttpRequest(uri = "/files")
