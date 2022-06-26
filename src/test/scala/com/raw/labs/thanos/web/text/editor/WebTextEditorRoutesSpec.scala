@@ -1,7 +1,6 @@
 package com.raw.labs.thanos.web.text.editor
 
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
-import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.concurrent.ScalaFutures

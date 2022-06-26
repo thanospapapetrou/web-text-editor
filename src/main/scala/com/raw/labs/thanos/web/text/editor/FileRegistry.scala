@@ -19,13 +19,11 @@ object FileRegistry {
 
   final case class CreateFile(name: String, replyTo: ActorRef[ActionPerformed]) extends Command
 
-  final case class GetFile(name: String, replyTo: ActorRef[GetFileResponse]) extends Command
+  final case class GetFile(name: String, replyTo: ActorRef[Option[File]]) extends Command
 
   final case class UpdateFile(name: String, content: String, replyTo: ActorRef[ActionPerformed]) extends Command
 
   final case class DeleteFile(name: String, replyTo: ActorRef[ActionPerformed]) extends Command
-
-  final case class GetFileResponse(maybeFile: Option[File])
 
   final case class ActionPerformed(description: String)
 
@@ -41,7 +39,7 @@ object FileRegistry {
         // TODO use clock
         registry(files + File(name, Instant.now().toEpochMilli, ""))
       case GetFile(name, replyTo) =>
-        replyTo ! GetFileResponse(files.find(_.name == name))
+        replyTo ! files.find(_.name == name)
         Behaviors.same
       case UpdateFile(name, content, replyTo) =>
         println(s"Updating file $name with content $content")

@@ -27,7 +27,7 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
   def getFiles(): Future[Files] =
     fileRegistry.ask(GetFiles)
 
-  def getFile(name: String): Future[GetFileResponse] =
+  def getFile(name: String): Future[Option[File]] =
     fileRegistry.ask(GetFile(name, _))
 
   def createFile(name: String): Future[ActionPerformed] =
@@ -65,8 +65,8 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
               },
               get {
                 rejectEmptyResponse {
-                  onSuccess(getFile(name)) { response =>
-                    complete(response.maybeFile)
+                  onSuccess(getFile(name)) { file =>
+                    complete(file)
                   }
                 }
               },
