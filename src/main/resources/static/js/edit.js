@@ -1,4 +1,5 @@
 function load() {
+    document.getElementById('content').disabled = true;
     const name = parseQueryParameters().get('file');
     const request = new XMLHttpRequest();
     request.onload = function () {
@@ -7,9 +8,12 @@ function load() {
         document.getElementById('content').value = file.content;
         document.getElementById('lastUpdated').value = file.lastUpdated;
         document.getElementById('lastUpdatedString').textContent = new Date(file.lastUpdated);
+        document.getElementById('content').disabled = false;
+        document.getElementById('content').focus();
     }
     request.open('GET', '/files/' + name, true);
     request.send();
+    setTimeout(load, 5000);
 }
 
 function save() {
