@@ -23,7 +23,7 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
   "Web Text Editor" should {
     "return no file names if no files exist (GET /files)" in {
       // expect
-      HttpRequest(uri = "/files") ~> routes ~> check {
+      Get(uri = "/files") ~> routes ~> check {
         status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`application/json`)
         entityAs[String] should ===("""{"files":[]}""")
@@ -35,7 +35,7 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       val name = "foo"
       Post(s"/files/$name") ~> routes
       // expect
-      HttpRequest(uri = "/files") ~> routes ~> check {
+      Get(uri = "/files") ~> routes ~> check {
         status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`application/json`)
         entityAs[String] should ===(s"""{"files":["$name"]}""")
@@ -69,6 +69,7 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       // expect
       Post(s"/files/$name") ~> routes ~> check {
         status should ===(StatusCodes.Conflict)
+        contentType should ===(ContentTypes.NoContentType)
         entityAs[String] should ===("")
       }
       // cleanup
@@ -100,17 +101,61 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       // expect
       Get(s"/files/$name") ~> routes ~> check {
         status should ===(StatusCodes.NotFound)
+        contentType should ===(ContentTypes.NoContentType)
         entityAs[String] should ===("")
       }
     }
 
-    "delete file (DELETE /files/{file})" in {
+    "update file if it exists (PUT /files/{file}" in {
+      // given
+      val name = "foo"
+      val content = "bar"
+      val pattern = s"""^\\{"content"\\:"$content"\\,"lastUpdated"\\:(\\d+)\\,"name"\\:"$name"\\}$$""".r
+      val before = Instant.now.toEpochMilli
+      Post(s"/files/$name") ~> routes
+      // expect
+      Put(s"/files/$name", content) ~> routes ~> check {
+        val after = Instant.now.toEpochMilli
+        status should ===(StatusCodes.OK)
+        contentType should ===(ContentTypes.`application/json`)
+        entityAs[String] should fullyMatch regex pattern
+        pattern.findAllIn(entityAs[String]).matchData.next.group(1).toLong should be >= before
+        pattern.findAllIn(entityAs[String]).matchData.next.group(1).toLong should be <= after
+      }
+      // cleanup
+      Delete(uri = s"/files/$name") ~> routes
+    }
+
+    "not update file if it doesn't exist (PUT /files/{file}" in {
+      // given
+      val name = "foo"
+      val content = "bar"
+      // expect
+      Put(s"/files/$name", content) ~> routes ~> check {
+        status should ===(StatusCodes.NotFound)
+        contentType should ===(ContentTypes.NoContentType)
+        entityAs[String] should ===("")
+      }
+      // cleanup
+      Delete(uri = s"/files/$name") ~> routes
+    }
+
+    "delete file if it exists (DELETE /files/{file})" in {
       val name = "foo"
       Post(s"/files/$name") ~> routes
       Delete(uri = s"/files/$name") ~> routes ~> check {
         status should ===(StatusCodes.OK)
-        contentType should ===(ContentTypes.`application/json`)
-        entityAs[String] should ===("""{"description":"File foo deleted."}""")
+        contentType should ===(ContentTypes.`text/plain(UTF-8)`)
+        entityAs[String] should ===(s"$name")
+      }
+    }
+
+    "not delete file if it doesn't exist (DELETE /files/{file})" in {
+      val name = "foo"
+      Delete(uri = s"/files/$name") ~> routes ~> check {
+        status should ===(StatusCodes.NotFound)
+        contentType should ===(ContentTypes.NoContentType)
+        entityAs[String] should ===("")
       }
     }
   }

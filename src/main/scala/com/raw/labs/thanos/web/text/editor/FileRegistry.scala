@@ -21,11 +21,9 @@ object FileRegistry {
 
   final case class GetFile(name: String, replyTo: ActorRef[Option[File]]) extends Command
 
-  final case class UpdateFile(name: String, content: String, replyTo: ActorRef[ActionPerformed]) extends Command
+  final case class UpdateFile(name: String, content: String, replyTo: ActorRef[Option[File]]) extends Command
 
-  final case class DeleteFile(name: String, replyTo: ActorRef[ActionPerformed]) extends Command
-
-  final case class ActionPerformed(description: String)
+  final case class DeleteFile(name: String, replyTo: ActorRef[Option[String]]) extends Command
 
   implicit val clock: Clock = Clock.systemUTC()
 
@@ -53,11 +51,23 @@ object FileRegistry {
         Behaviors.same
       case UpdateFile(name, content, replyTo) =>
         println(s"""Updating file $name with content "$content"""")
-        replyTo ! ActionPerformed(s"File $name updated.")
-        registry(files.filterNot(_.name == name) + File(name, clock.millis, content))
+        if (files.exists(_.name == name)) {
+          val file = File(name, clock.millis, content)
+          replyTo ! Some(file)
+          registry(files.filterNot(_.name == name) + file)
+          // TODO check timestamp
+        } else {
+          replyTo ! None
+          Behaviors.same
+        }
       case DeleteFile(name, replyTo) =>
         println(s"Deleting file $name")
-        replyTo ! ActionPerformed(s"File $name deleted.")
-        registry(files.filterNot(_.name == name))
+        if (files.exists(_.name == name)) {
+          replyTo ! Some(name)
+          registry(files.filterNot(_.name == name))
+        } else {
+          replyTo ! None
+          Behaviors.same
+        }
     }
 }

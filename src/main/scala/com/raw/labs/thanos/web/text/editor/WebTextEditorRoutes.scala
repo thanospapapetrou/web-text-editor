@@ -33,10 +33,10 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
   def createFile(name: String): Future[Option[File]] =
     fileRegistry.ask(CreateFile(name, _))
 
-  def updateFile(name: String, content: String): Future[ActionPerformed] =
+  def updateFile(name: String, content: String): Future[Option[File]] =
     fileRegistry.ask(UpdateFile(name, content, _))
 
-  def deleteFile(name: String): Future[ActionPerformed] =
+  def deleteFile(name: String): Future[Option[String]] =
     fileRegistry.ask(DeleteFile(name, _))
 
   val routes: Route =
@@ -70,14 +70,14 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
               },
               put {
                 entity(as[String]) { content =>
-                  onSuccess(updateFile(name, content)) { response =>
-                    complete(response)
+                  onSuccess(updateFile(name, content)) { file =>
+                    complete(if (file.isEmpty) StatusCodes.NotFound else StatusCodes.OK, file)
                   }
                 }
               },
               delete {
                 onSuccess(deleteFile(name)) { file =>
-                  complete((StatusCodes.OK, file))
+                  complete(if (file.isEmpty) StatusCodes.NotFound else StatusCodes.OK, file)
                 }
               }
             )
