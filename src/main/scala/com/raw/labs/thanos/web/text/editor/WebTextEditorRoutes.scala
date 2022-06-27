@@ -30,7 +30,7 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
   def getFile(name: String): Future[Option[File]] =
     fileRegistry.ask(GetFile(name, _))
 
-  def createFile(name: String): Future[ActionPerformed] =
+  def createFile(name: String): Future[Option[File]] =
     fileRegistry.ask(CreateFile(name, _))
 
   def updateFile(name: String, content: String): Future[ActionPerformed] =
@@ -59,15 +59,13 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
           path(Segment) { name =>
             concat(
               post {
-                onSuccess(createFile(name)) { performed =>
-                  complete((StatusCodes.Created, performed))
+                onSuccess(createFile(name)) { file =>
+                  complete(if (file.isEmpty) StatusCodes.Conflict else StatusCodes.Created, file)
                 }
               },
               get {
-                rejectEmptyResponse {
-                  onSuccess(getFile(name)) { file =>
-                    complete(file)
-                  }
+                onSuccess(getFile(name)) { file =>
+                  complete(if (file.isEmpty) StatusCodes.NotFound else StatusCodes.OK, file)
                 }
               },
               put {
@@ -78,8 +76,8 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
                 }
               },
               delete {
-                onSuccess(deleteFile(name)) { performed =>
-                  complete((StatusCodes.OK, performed))
+                onSuccess(deleteFile(name)) { file =>
+                  complete((StatusCodes.OK, file))
                 }
               }
             )
