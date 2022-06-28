@@ -47,7 +47,7 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
     "create file if it doesn't exist (POST /files)" in {
       // given
       val name = "foo"
-      val pattern = s"""^\\{"content"\\:""\\,"lastUpdated"\\:(\\d+)\\,"name"\\:"$name"\\}$$""".r
+      val pattern = s"""^\\{"file"\\:\\{"content"\\:""\\,"lastUpdated"\\:(\\d+)\\,"name"\\:"$name"\\}\\}$$""".r
       // expect
       val before = Instant.now.toEpochMilli
       Post(s"/files/$name") ~> routes ~> check {
@@ -69,8 +69,8 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       // expect
       Post(s"/files/$name") ~> routes ~> check {
         status should ===(StatusCodes.Conflict)
-        contentType should ===(ContentTypes.NoContentType)
-        entityAs[String] should ===("")
+        contentType should ===(ContentTypes.`application/json`)
+        entityAs[String] should ===(s"""{"error":"${FileRegistry.FILE_ALREADY_EXISTS}"}""")
       }
       // cleanup
       Delete(uri = s"/files/$name") ~> routes
@@ -110,7 +110,7 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       // given
       val name = "foo"
       val content = "bar"
-      val pattern = s"""^\\{"content"\\:"$content"\\,"lastUpdated"\\:(\\d+)\\,"name"\\:"$name"\\}$$""".r
+      val pattern = s"""^\\{"file"\\:\\{"content"\\:"$content"\\,"lastUpdated"\\:(\\d+)\\,"name"\\:"$name"\\}\\}$$""".r
       val before = Instant.now.toEpochMilli
       Post(s"/files/$name") ~> routes
       // expect
@@ -133,20 +133,20 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       // expect
       Put(s"/files/$name", content) ~> routes ~> check {
         status should ===(StatusCodes.NotFound)
-        contentType should ===(ContentTypes.NoContentType)
-        entityAs[String] should ===("")
+        contentType should ===(ContentTypes.`application/json`)
+        entityAs[String] should ===(s"""{"error":"${FileRegistry.FILE_NOT_FOUND}"}""")
       }
-      // cleanup
-      Delete(uri = s"/files/$name") ~> routes
     }
+
+    // TODO not update file if it is outdated
 
     "delete file if it exists (DELETE /files/{file})" in {
       val name = "foo"
       Post(s"/files/$name") ~> routes
       Delete(uri = s"/files/$name") ~> routes ~> check {
         status should ===(StatusCodes.OK)
-        contentType should ===(ContentTypes.`text/plain(UTF-8)`)
-        entityAs[String] should ===(s"$name")
+        contentType should ===(ContentTypes.`application/json`)
+        entityAs[String] should ===(s"""{"file":"$name"}""")
       }
     }
 
@@ -154,8 +154,8 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       val name = "foo"
       Delete(uri = s"/files/$name") ~> routes ~> check {
         status should ===(StatusCodes.NotFound)
-        contentType should ===(ContentTypes.NoContentType)
-        entityAs[String] should ===("")
+        contentType should ===(ContentTypes.`application/json`)
+        entityAs[String] should ===(s"""{"error":"${FileRegistry.FILE_NOT_FOUND}"}""")
       }
     }
   }

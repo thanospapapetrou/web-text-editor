@@ -24,19 +24,19 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
 
   private implicit val timeout: Timeout = Timeout.create(system.settings.config.getDuration(WebTextEditorRoutes.TIMEOUT))
 
-  def getFiles(): Future[Files] =
+  def getFiles(): Future[GetFilesResponse] =
     fileRegistry.ask(GetFiles)
 
   def getFile(name: String): Future[Option[File]] =
     fileRegistry.ask(GetFile(name, _))
 
-  def createFile(name: String): Future[Option[File]] =
+  def createFile(name: String): Future[CreateFileResponse] =
     fileRegistry.ask(CreateFile(name, _))
 
-  def updateFile(name: String, content: String): Future[Option[File]] =
+  def updateFile(name: String, content: String): Future[UpdateFileResponse] =
     fileRegistry.ask(UpdateFile(name, content, _))
 
-  def deleteFile(name: String): Future[Option[String]] =
+  def deleteFile(name: String): Future[DeleteFileResponse] =
     fileRegistry.ask(DeleteFile(name, _))
 
   val routes: Route =
@@ -59,8 +59,8 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
           path(Segment) { name =>
             concat(
               post {
-                onSuccess(createFile(name)) { file =>
-                  complete(if (file.isEmpty) StatusCodes.Conflict else StatusCodes.Created, file)
+                onSuccess(createFile(name)) { response =>
+                  complete(if (response.error.isEmpty) StatusCodes.Created else StatusCodes.Conflict, response)
                 }
               },
               get {
@@ -70,14 +70,14 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
               },
               put {
                 entity(as[String]) { content =>
-                  onSuccess(updateFile(name, content)) { file =>
-                    complete(if (file.isEmpty) StatusCodes.NotFound else StatusCodes.OK, file)
+                  onSuccess(updateFile(name, content)) { response =>
+                    complete(if (response.error.isEmpty) StatusCodes.OK else StatusCodes.NotFound, response)
                   }
                 }
               },
               delete {
-                onSuccess(deleteFile(name)) { file =>
-                  complete(if (file.isEmpty) StatusCodes.NotFound else StatusCodes.OK, file)
+                onSuccess(deleteFile(name)) { response =>
+                  complete(if (response.error.isEmpty) StatusCodes.OK else StatusCodes.NotFound, response)
                 }
               }
             )
