@@ -70,7 +70,7 @@ object FileRegistry {
             replyTo ! UpdateFileResponse(Some(newFile), None)
             registry(files.filterNot(_.name == name) + newFile)
           } else {
-            replyTo ! UpdateFileResponse(None, Some(OPTIMISTIC_LOCK_FAILURE))
+            replyTo ! UpdateFileResponse(Some(existingFile.get), Some(OPTIMISTIC_LOCK_FAILURE))
             Behaviors.same
           }
         } else {

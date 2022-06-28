@@ -161,8 +161,6 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       }
     }
 
-    // TODO not update file if it is outdated
-
     "delete file if it exists (DELETE /files/{file})" in {
       val name = "foo"
       Post(s"/files/$name") ~> routes

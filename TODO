@@ -1,4 +1,3 @@
-refuse file update if file is outdated
 different backends
 edit from multiple sessions
 save and load in a single pass
