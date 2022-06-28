@@ -28,7 +28,7 @@ object WebTextEditor {
 
   def main(args: Array[String]): Unit = {
     ActorSystem[Nothing](Behaviors.setup[Nothing] { context =>
-      val actor = context.spawn(FileRegistry(), FILE_REGISTRY_ACTOR)
+      val actor = context.spawn(MemoryFileRegistry(), FILE_REGISTRY_ACTOR)
       context.watch(actor)
       startHttpServer(new WebTextEditorRoutes(actor)(context.system).routes)(context.system)
       Behaviors.empty

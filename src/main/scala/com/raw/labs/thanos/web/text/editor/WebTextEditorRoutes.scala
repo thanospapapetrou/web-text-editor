@@ -6,7 +6,6 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
-import com.raw.labs.thanos.web.text.editor.FileRegistry._
 
 import scala.concurrent.Future
 
@@ -17,14 +16,14 @@ object WebTextEditorRoutes {
   private val TIMEOUT: String = "web-text-editor.routes.ask-timeout"
 }
 
-class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit val system: ActorSystem[_]) {
+class WebTextEditorRoutes(fileRegistry: ActorRef[Command])(implicit val system: ActorSystem[_]) {
 
   import JsonFormats._
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
   private implicit val timeout: Timeout = Timeout.create(system.settings.config.getDuration(WebTextEditorRoutes.TIMEOUT))
 
-  def getFiles(): Future[GetFilesResponse] =
+  def getFiles: Future[GetFilesResponse] =
     fileRegistry.ask(GetFiles)
 
   def getFile(name: String): Future[Option[File]] =
@@ -52,7 +51,7 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
           pathEnd {
             concat(
               get {
-                complete(getFiles())
+                complete(getFiles)
               }
             )
           },
@@ -71,7 +70,7 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
               put {
                 entity(as[UpdateFileRequest]) { request =>
                   onSuccess(updateFile(name, request)) { response =>
-                    complete(if (response.error.isEmpty) StatusCodes.OK else (if (response.error.get == FileRegistry.FILE_NOT_FOUND) StatusCodes.NotFound else StatusCodes.Conflict), response)
+                    complete(if (response.error.isEmpty) StatusCodes.OK else if (response.error.get == FileRegistry.FILE_NOT_FOUND) StatusCodes.NotFound else StatusCodes.Conflict, response)
                   }
                 }
               },
