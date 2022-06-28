@@ -3,6 +3,7 @@ package com.raw.labs.thanos.web.text.editor
 import java.time.Instant
 
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
+import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.concurrent.ScalaFutures
@@ -19,6 +20,9 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
 
   val userRegistry = testKit.spawn(FileRegistry())
   lazy val routes = new WebTextEditorRoutes(userRegistry).routes
+
+  import JsonFormats._
+  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
   "Web Text Editor" should {
     "return no file names if no files exist (GET /files)" in {
@@ -106,7 +110,7 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       }
     }
 
-    "update file if it exists (PUT /files/{file}" in {
+    "update file if it exists and hasn't been modified meanwhile (PUT /files/{file}" in {
       // given
       val name = "foo"
       val content = "bar"
@@ -114,7 +118,7 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       val before = Instant.now.toEpochMilli
       Post(s"/files/$name") ~> routes
       // expect
-      Put(s"/files/$name", content) ~> routes ~> check {
+      Put(s"/files/$name").withEntity(Marshal(UpdateFileRequest(Instant.now.toEpochMilli, content)).to[MessageEntity].futureValue) ~> routes ~> check {
         val after = Instant.now.toEpochMilli
         status should ===(StatusCodes.OK)
         contentType should ===(ContentTypes.`application/json`)
@@ -126,12 +130,31 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       Delete(uri = s"/files/$name") ~> routes
     }
 
-    "not update file if it doesn't exist (PUT /files/{file}" in {
+    "not update file if it exists but has been modified meanwhile (PUT /files/{file}" in {
       // given
       val name = "foo"
       val content = "bar"
+      val pattern = s"""^\\{"file"\\:\\{"content"\\:"$content"\\,"lastUpdated"\\:(\\d+)\\,"name"\\:"$name"\\}\\}$$""".r
+      val before = Instant.now.toEpochMilli
+      Post(s"/files/$name") ~> routes
       // expect
-      Put(s"/files/$name", content) ~> routes ~> check {
+      Put(s"/files/$name").withEntity(Marshal(UpdateFileRequest(before, content)).to[MessageEntity].futureValue) ~> routes ~> check {
+        val after = Instant.now.toEpochMilli
+        status should ===(StatusCodes.Conflict)
+        contentType should ===(ContentTypes.`application/json`)
+        entityAs[String] should ===(s"""{"error":"${FileRegistry.OPTIMISTIC_LOCK_FAILURE}"}""")
+      }
+      // cleanup
+      Delete(uri = s"/files/$name") ~> routes
+    }
+
+    "not update file if it doesn't exist (PUT /files/{file}" in {
+      // given
+      val name = "foo"
+      val lastUpdated = Instant.now.toEpochMilli
+      val content = "bar"
+      // expect
+      Put(s"/files/$name").withEntity(Marshal(UpdateFileRequest(lastUpdated, content)).to[MessageEntity].futureValue) ~> routes ~> check {
         status should ===(StatusCodes.NotFound)
         contentType should ===(ContentTypes.`application/json`)
         entityAs[String] should ===(s"""{"error":"${FileRegistry.FILE_NOT_FOUND}"}""")

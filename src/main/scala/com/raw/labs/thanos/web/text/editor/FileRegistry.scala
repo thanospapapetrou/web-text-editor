@@ -1,6 +1,6 @@
 package com.raw.labs.thanos.web.text.editor
 
-import java.time.Clock
+import java.time.{Clock, Instant}
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
@@ -12,6 +12,8 @@ final case class File(name: String, lastUpdated: Long, content: String)
 final case class GetFilesResponse(files: Seq[String])
 
 final case class CreateFileResponse(file: Option[File], error: Option[String])
+
+final case class UpdateFileRequest(lastUpdated: Long, content: String)
 
 final case class UpdateFileResponse(file: Option[File], error: Option[String])
 
@@ -27,7 +29,7 @@ object FileRegistry {
 
   final case class GetFile(name: String, replyTo: ActorRef[Option[File]]) extends Command
 
-  final case class UpdateFile(name: String, content: String, replyTo: ActorRef[UpdateFileResponse]) extends Command
+  final case class UpdateFile(name: String, request: UpdateFileRequest, replyTo: ActorRef[UpdateFileResponse]) extends Command
 
   final case class DeleteFile(name: String, replyTo: ActorRef[DeleteFileResponse]) extends Command
 
@@ -35,6 +37,7 @@ object FileRegistry {
 
   val FILE_ALREADY_EXISTS = "File already exists"
   val FILE_NOT_FOUND = "File not found"
+  val OPTIMISTIC_LOCK_FAILURE = "Optimistic lock failure"
 
   def apply(): Behavior[Command] = registry(Set.empty)
 
@@ -58,13 +61,18 @@ object FileRegistry {
         println(s"Retrieving file $name")
         replyTo ! files.find(_.name == name)
         Behaviors.same
-      case UpdateFile(name, content, replyTo) =>
-        println(s"""Updating file $name with content "$content"""")
-        if (files.exists(_.name == name)) {
-          val file = File(name, clock.millis, content)
-          replyTo ! UpdateFileResponse(Some(file), None)
-          registry(files.filterNot(_.name == name) + file)
-          // TODO check timestamp
+      case UpdateFile(name, request, replyTo) =>
+        println(s"""Updating file $name with content "${request.content}" provided it has not been updated since ${Instant.ofEpochMilli(request.lastUpdated)}""")
+        val existingFile = files.find(_.name == name)
+        if (existingFile.isDefined) {
+          if (existingFile.get.lastUpdated <= request.lastUpdated) {
+            val newFile = File(name, clock.millis, request.content)
+            replyTo ! UpdateFileResponse(Some(newFile), None)
+            registry(files.filterNot(_.name == name) + newFile)
+          } else {
+            replyTo ! UpdateFileResponse(None, Some(OPTIMISTIC_LOCK_FAILURE))
+            Behaviors.same
+          }
         } else {
           replyTo ! UpdateFileResponse(None, Some(FILE_NOT_FOUND))
           Behaviors.same

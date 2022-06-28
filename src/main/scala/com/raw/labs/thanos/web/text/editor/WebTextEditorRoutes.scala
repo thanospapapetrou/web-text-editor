@@ -33,8 +33,8 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
   def createFile(name: String): Future[CreateFileResponse] =
     fileRegistry.ask(CreateFile(name, _))
 
-  def updateFile(name: String, content: String): Future[UpdateFileResponse] =
-    fileRegistry.ask(UpdateFile(name, content, _))
+  def updateFile(name: String, request: UpdateFileRequest): Future[UpdateFileResponse] =
+    fileRegistry.ask(UpdateFile(name, request, _))
 
   def deleteFile(name: String): Future[DeleteFileResponse] =
     fileRegistry.ask(DeleteFile(name, _))
@@ -69,9 +69,9 @@ class WebTextEditorRoutes(fileRegistry: ActorRef[FileRegistry.Command])(implicit
                 }
               },
               put {
-                entity(as[String]) { content =>
-                  onSuccess(updateFile(name, content)) { response =>
-                    complete(if (response.error.isEmpty) StatusCodes.OK else StatusCodes.NotFound, response)
+                entity(as[UpdateFileRequest]) { request =>
+                  onSuccess(updateFile(name, request)) { response =>
+                    complete(if (response.error.isEmpty) StatusCodes.OK else (if (response.error.get == FileRegistry.FILE_NOT_FOUND) StatusCodes.NotFound else StatusCodes.Conflict), response)
                   }
                 }
               },
