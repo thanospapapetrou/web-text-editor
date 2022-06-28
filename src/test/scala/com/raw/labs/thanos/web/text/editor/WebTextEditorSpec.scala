@@ -134,7 +134,7 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       // given
       val name = "foo"
       val content = "bar"
-      val pattern = s"""^\\{"file"\\:\\{"content"\\:"$content"\\,"lastUpdated"\\:(\\d+)\\,"name"\\:"$name"\\}\\}$$""".r
+      val pattern = s"""^\\{"error"\\:"${FileRegistry.OPTIMISTIC_LOCK_FAILURE}"\\,"file"\\:\\{"content"\\:""\\,"lastUpdated"\\:(\\d+)\\,"name"\\:"$name"\\}\\}$$""".r
       val before = Instant.now.toEpochMilli
       Post(s"/files/$name") ~> routes
       // expect
@@ -142,7 +142,9 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
         val after = Instant.now.toEpochMilli
         status should ===(StatusCodes.Conflict)
         contentType should ===(ContentTypes.`application/json`)
-        entityAs[String] should ===(s"""{"error":"${FileRegistry.OPTIMISTIC_LOCK_FAILURE}"}""")
+        entityAs[String] should fullyMatch regex pattern
+        pattern.findAllIn(entityAs[String]).matchData.next.group(1).toLong should be >= before
+        pattern.findAllIn(entityAs[String]).matchData.next.group(1).toLong should be <= after
       }
       // cleanup
       Delete(uri = s"/files/$name") ~> routes

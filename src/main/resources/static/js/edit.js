@@ -1,4 +1,4 @@
-var modified = false;
+const SAVE_PERIOD = 10000;
 
 function load() {
     document.getElementById('content').disabled = true;
@@ -8,54 +8,30 @@ function load() {
         if (this.status == 404) {
             alert('File ' + name + ' not found');
         } else {
-            const file = JSON.parse(this.response);
-            document.getElementById('name').textContent = file.name;
-            document.getElementById('lastUpdated').value = file.lastUpdated;
-            document.getElementById('lastUpdatedString').textContent = new Date(file.lastUpdated);
-            document.getElementById('content').value = file.content;
-            document.getElementById('content').disabled = false;
-            document.getElementById('content').focus();
-            setTimeout(save, 5000);
+            renderFile(JSON.parse(this.response));
         }
     };
     request.open('GET', '/files/' + name, true);
     request.send();
+    setTimeout(save, SAVE_PERIOD);
 }
 
 function save() {
-    if (modified) {
-        document.getElementById('content').disabled = true;
-        const name = parseQueryParameters().get('file');
-        const request = new XMLHttpRequest();
-        request.onload = function () {
-            const file = JSON.parse(this.response).file;
-            document.getElementById('lastUpdated').value = file.lastUpdated;
-            document.getElementById('lastUpdatedString').textContent = new Date(file.lastUpdated);
-            document.getElementById('content').value = file.content;
-            modified = false;
-            document.getElementById('content').disabled = false;
-            document.getElementById('content').focus();
-        };
-        request.onerror = function () {
-            if (this.status == 409) {
-                const file = JSON.parse(this.response).file;
-                document.getElementById('lastUpdated').value = file.lastUpdated;
-                document.getElementById('lastUpdatedString').textContent = new Date(file.lastUpdated);
-                document.getElementById('content').value = file.content;
-                modified = false;
-                document.getElementById('content').disabled = false;
-                document.getElementById('content').focus();
-            }
-        };
-        request.open('PUT', '/files/' + name, true);
-        request.setRequestHeader('Content-Type', 'application/json');
-        request.send(JSON.stringify({lastUpdated: parseInt(document.getElementById('lastUpdated').value), content: document.getElementById('content').value}));
-    }
-    setTimeout(save, 5000);
-}
-
-function setModified() {
-    this.modified = true;
+    document.getElementById('content').disabled = true;
+    const name = parseQueryParameters().get('file');
+    const request = new XMLHttpRequest();
+    request.onload = function () {
+        renderFile(JSON.parse(this.response).file);
+    };
+    request.onerror = function () {
+        if (this.status == 409) {
+            renderFile(JSON.parse(this.response).file);
+        }
+    };
+    request.open('PUT', '/files/' + name, true);
+    request.setRequestHeader('Content-Type', 'application/json');
+    request.send(JSON.stringify({lastUpdated: parseInt(document.getElementById('lastUpdated').value), content: document.getElementById('content').value}));
+    setTimeout(save, SAVE_PERIOD);
 }
 
 function parseQueryParameters() {
@@ -67,4 +43,13 @@ function parseQueryParameters() {
         }
     });
     return parameters;
+}
+
+function renderFile(file) {
+    document.getElementById('name').textContent = file.name;
+    document.getElementById('lastUpdated').value = file.lastUpdated;
+    document.getElementById('lastUpdatedString').textContent = new Date(file.lastUpdated);
+    document.getElementById('content').value = file.content;
+    document.getElementById('content').disabled = false;
+    document.getElementById('content').focus();
 }

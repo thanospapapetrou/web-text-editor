@@ -66,7 +66,7 @@ object FileRegistry {
         val existingFile = files.find(_.name == name)
         if (existingFile.isDefined) {
           if (existingFile.get.lastUpdated <= request.lastUpdated) {
-            val newFile = File(name, clock.millis, request.content)
+            val newFile = File(name, if (request.content == existingFile.get.content) existingFile.get.lastUpdated else clock.millis, request.content)
             replyTo ! UpdateFileResponse(Some(newFile), None)
             registry(files.filterNot(_.name == name) + newFile)
           } else {
