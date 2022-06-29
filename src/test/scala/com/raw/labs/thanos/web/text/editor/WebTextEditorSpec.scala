@@ -15,11 +15,10 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
 
   implicit def typedSystem = testKit.system
 
-  override def createActorSystem(): akka.actor.ActorSystem =
-    testKit.system.classicSystem
+  override def createActorSystem(): akka.actor.ActorSystem = testKit.system.classicSystem
 
-  val userRegistry = testKit.spawn(FileRegistry())
-  lazy val routes = new WebTextEditorRoutes(userRegistry).routes
+  val fileRegistry = testKit.spawn(WebTextEditor.getFileRegistry(testKit.system.classicSystem.settings.config))
+  lazy val routes = new WebTextEditorRoutes(fileRegistry).routes
 
   import JsonFormats._
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -116,7 +115,7 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       val content = "bar"
       val pattern = s"""^\\{"file"\\:\\{"content"\\:"$content"\\,"lastUpdated"\\:(\\d+)\\,"name"\\:"$name"\\}\\}$$""".r
       val before = Instant.now.toEpochMilli
-      Post(s"/files/$name") ~> routes
+      Post(s"/files/$name") ~> routes ~> check {}
       // expect
       Put(s"/files/$name").withEntity(Marshal(UpdateFileRequest(Instant.now.toEpochMilli, content)).to[MessageEntity].futureValue) ~> routes ~> check {
         val after = Instant.now.toEpochMilli
