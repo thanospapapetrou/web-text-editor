@@ -1,17 +1,15 @@
 package com.raw.labs.thanos.web.text.editor
 
-import com.raw.labs.thanos.web.text.editor.UserRegistry.ActionPerformed
+import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
-//#json-formats
-import spray.json.DefaultJsonProtocol
+object JsonFormats {
 
-object JsonFormats  {
-  // import the default encoders for primitive types (Int, String, Lists etc)
   import DefaultJsonProtocol._
 
-  implicit val userJsonFormat = jsonFormat3(User)
-  implicit val usersJsonFormat = jsonFormat1(Users)
-
-  implicit val actionPerformedJsonFormat = jsonFormat1(ActionPerformed)
+  implicit val fileJsonFormat: RootJsonFormat[File] = jsonFormat3(File)
+  implicit val filesJsonFormat: RootJsonFormat[GetFilesResponse] = jsonFormat1(GetFilesResponse)
+  implicit val createFileResponseJsonFormat: RootJsonFormat[CreateFileResponse] = jsonFormat2(CreateFileResponse)
+  implicit val updateFileRequestJsonFormat: RootJsonFormat[UpdateFileRequest] = jsonFormat2(UpdateFileRequest)
+  implicit val updateFileResponseJsonFormat: RootJsonFormat[UpdateFileResponse] = jsonFormat2(UpdateFileResponse)
+  implicit val deleteFileResponseJsonFormat: RootJsonFormat[DeleteFileResponse] = jsonFormat2(DeleteFileResponse)
 }
-//#json-formats
