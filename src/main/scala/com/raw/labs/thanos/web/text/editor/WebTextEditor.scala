@@ -32,6 +32,7 @@ object WebTextEditor {
     Backend.parse(config.getString(BACKEND)) match {
       case Backend.Memory => MemoryFileRegistry()
       case Backend.FileSystem => FileSystemFileRegistry(config)
+      case Backend.DB => DbFileRegistry(config)
     }
   }
 
