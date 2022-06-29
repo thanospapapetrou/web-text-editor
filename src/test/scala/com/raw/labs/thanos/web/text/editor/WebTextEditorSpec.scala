@@ -115,7 +115,7 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
       val content = "bar"
       val pattern = s"""^\\{"file"\\:\\{"content"\\:"$content"\\,"lastUpdated"\\:(\\d+)\\,"name"\\:"$name"\\}\\}$$""".r
       val before = Instant.now.toEpochMilli
-      Post(s"/files/$name") ~> routes
+      Post(s"/files/$name") ~> routes ~> check {}
       // expect
       Put(s"/files/$name").withEntity(Marshal(UpdateFileRequest(Instant.now.toEpochMilli, content)).to[MessageEntity].futureValue) ~> routes ~> check {
         val after = Instant.now.toEpochMilli
