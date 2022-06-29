@@ -34,44 +34,44 @@ final case class DeleteFile(name: String, replyTo: ActorRef[DeleteFileResponse])
 trait FileRegistry[T] {
   implicit val clock: Clock = Clock.systemUTC()
 
-  protected def listFiles(): Seq[String]
+  protected def listFiles(context: T): Seq[String]
 
-  protected def getFile(name: String): Option[File]
+  protected def getFile(context: T, name: String): Option[File]
 
-  protected def createFile(file: File): Behavior[Command]
+  protected def createFile(context: T, file: File): Behavior[Command]
 
-  protected def updateFile(file: File): Behavior[Command]
+  protected def updateFile(context: T, file: File): Behavior[Command]
 
-  protected def deleteFile(name: String): Behavior[Command]
+  protected def deleteFile(context: T, name: String): Behavior[Command]
 
-  protected def registry(t: T): Behavior[Command] =
+  protected def registry(context: T): Behavior[Command] =
     Behaviors.receiveMessage {
       case GetFiles(replyTo) =>
         println("Retrieving files")
-        replyTo ! GetFilesResponse(listFiles())
+        replyTo ! GetFilesResponse(listFiles(context))
         Behaviors.same
       case CreateFile(name, replyTo) =>
         println(s"Creating file $name")
-        if (getFile(name).isEmpty) {
+        if (getFile(context, name).isEmpty) {
           val file = File(name, clock.millis, "")
           replyTo ! CreateFileResponse(Some(file), None)
-          createFile(file)
+          createFile(context, file)
         } else {
           replyTo ! CreateFileResponse(None, Some(FileRegistry.FILE_ALREADY_EXISTS))
           Behaviors.same
         }
       case GetFile(name, replyTo) =>
         println(s"Retrieving file $name")
-        replyTo ! getFile(name)
+        replyTo ! getFile(context, name)
         Behaviors.same
       case UpdateFile(name, request, replyTo) =>
         println(s"""Updating file $name with content "${request.content}" provided it has not been updated since ${Instant.ofEpochMilli(request.lastUpdated)}""")
-        val existingFile = getFile(name)
+        val existingFile = getFile(context, name)
         if (existingFile.isDefined) {
           if (existingFile.get.lastUpdated <= request.lastUpdated) {
             val newFile = File(name, if (request.content == existingFile.get.content) existingFile.get.lastUpdated else clock.millis, request.content)
             replyTo ! UpdateFileResponse(Some(newFile), None)
-            updateFile(newFile)
+            updateFile(context, newFile)
           } else {
             replyTo ! UpdateFileResponse(Some(existingFile.get), Some(FileRegistry.OPTIMISTIC_LOCK_FAILURE))
             Behaviors.same
@@ -82,9 +82,9 @@ trait FileRegistry[T] {
         }
       case DeleteFile(name, replyTo) =>
         println(s"Deleting file $name")
-        if (getFile(name).isDefined) {
+        if (getFile(context, name).isDefined) {
           replyTo ! DeleteFileResponse(Some(name), None)
-          deleteFile(name)
+          deleteFile(context, name)
         } else {
           replyTo ! DeleteFileResponse(None, Some(FileRegistry.FILE_NOT_FOUND))
           Behaviors.same

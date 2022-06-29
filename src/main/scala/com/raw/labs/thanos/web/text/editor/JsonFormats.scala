@@ -6,7 +6,6 @@ object JsonFormats {
 
   import DefaultJsonProtocol._
 
-
   implicit val fileJsonFormat: RootJsonFormat[File] = jsonFormat3(File)
   implicit val filesJsonFormat: RootJsonFormat[GetFilesResponse] = jsonFormat1(GetFilesResponse)
   implicit val createFileResponseJsonFormat: RootJsonFormat[CreateFileResponse] = jsonFormat2(CreateFileResponse)
