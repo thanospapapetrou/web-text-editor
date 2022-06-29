@@ -15,11 +15,9 @@ class WebTextEditorSpec extends AnyWordSpec with Matchers with ScalaFutures with
 
   implicit def typedSystem = testKit.system
 
-  override def createActorSystem(): akka.actor.ActorSystem =
-    testKit.system.classicSystem
+  override def createActorSystem(): akka.actor.ActorSystem = testKit.system.classicSystem
 
-  // val fileRegistry = testKit.spawn(MemoryFileRegistry())
-  val fileRegistry = testKit.spawn(FileSystemFileRegistry(testKit.system.classicSystem.settings.config))
+  val fileRegistry = testKit.spawn(WebTextEditor.getFileRegistry(testKit.system.classicSystem.settings.config))
   lazy val routes = new WebTextEditorRoutes(fileRegistry).routes
 
   import JsonFormats._
